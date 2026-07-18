@@ -1,0 +1,26 @@
+[package]
+name = "kerneltrace-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared no_std types and constants used by both the KernelTrace eBPF programs and the userspace agent"
+readme = "README.md"
+
+[lib]
+name = "kerneltrace_common"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true, optional = true }
+
+[features]
+# Di default il crate è no_std, per poter essere compilato all'interno dei
+# programmi eBPF (target bpfel-unknown-none) insieme ad aya-ebpf.
+default = []
+
+# Abilitata dal crate userspace (kerneltrace-agent) per ottenere
+# implementazioni Serialize/Deserialize e altre comodità legate a std.
+std = ["dep:serde"]
