@@ -1,0 +1,42 @@
+# Esempio di configurazione KernelTrace con File Integrity Monitoring attivo
+# su alcuni path critici. Copiare in kerneltrace.yaml e adattare ai propri
+# path di sistema prima dell'uso in produzione.
+
+agent:
+  pipeline_capacity: 8192
+  pid_file: /run/kerneltrace.pid
+
+logging:
+  level: info
+  format: json
+  directory: /var/log/kerneltrace
+
+monitoring:
+  process: true
+  file_integrity: true
+  network: true
+  syscalls: true
+  fim_hash_algorithm: blake3
+  fim_watch_paths:
+    - /etc/passwd
+    - /etc/shadow
+    - /etc/ssh/sshd_config
+    - /usr/bin
+    - /usr/sbin
+    - /etc/kerneltrace
+
+rules:
+  directories:
+    - /etc/kerneltrace/rules
+  strict_parsing: false
+
+output:
+  sinks:
+    - stdout
+    - json
+  file_path: /var/log/kerneltrace/events.json
+
+container:
+  docker: true
+  podman: true
+  kubernetes: true
