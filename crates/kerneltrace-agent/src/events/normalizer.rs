@@ -2,7 +2,7 @@
 //! normalizzati (`NormalizedEvent`).
 
 use bytes::Bytes;
-use chrono::{TimeZone, Utc};
+use chrono::Utc;
 use kerneltrace_common::{EventHeader, EventType, ExecEvent, ProcessLifecycleEvent};
 use uuid::Uuid;
 
@@ -106,6 +106,7 @@ fn normalize_exec(raw: &Bytes) -> AgentResult<NormalizedEvent> {
         process: process_context_from_header(&event.header),
         payload: EventPayload::Exec { filename, args },
         container: None,
+        tags: Vec::new(),
     })
 }
 
@@ -132,6 +133,7 @@ fn normalize_process_lifecycle(raw: &Bytes) -> AgentResult<NormalizedEvent> {
             is_zombie: event.is_zombie != 0,
         },
         container: None,
+        tags: Vec::new(),
     })
 }
 
@@ -180,6 +182,7 @@ mod tests {
         let normalized = normalize(&raw).expect("should normalize");
         assert_eq!(normalized.event_kind, EventKind::ProcessLifecycle);
         assert_eq!(normalized.process.comm, "bash");
+        assert!(normalized.tags.is_empty());
     }
 
     #[test]
