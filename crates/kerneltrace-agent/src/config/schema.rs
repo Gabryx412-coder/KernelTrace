@@ -109,6 +109,8 @@ fn default_log_level() -> String {
     "info".to_string()
 }
 
+// In MonitoringSettings, aggiungiamo un campo per l'algoritmo di hash FIM:
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MonitoringSettings {
@@ -123,6 +125,9 @@ pub struct MonitoringSettings {
     /// Path monitorati esplicitamente dal File Integrity Monitoring.
     #[serde(default)]
     pub fim_watch_paths: Vec<PathBuf>,
+    /// Algoritmo di hashing usato dal FIM (`sha256` o `blake3`, default `blake3`).
+    #[serde(default)]
+    pub fim_hash_algorithm: crate::fim::HashAlgorithm,
 }
 
 impl Default for MonitoringSettings {
@@ -133,6 +138,7 @@ impl Default for MonitoringSettings {
             network: true,
             syscalls: true,
             fim_watch_paths: Vec::new(),
+            fim_hash_algorithm: crate::fim::HashAlgorithm::default(),
         }
     }
 }
