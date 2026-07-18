@@ -1,0 +1,17 @@
+# Questo file fissa la toolchain Rust usata per compilare KernelTrace,
+# garantendo build riproducibili su ogni macchina e in CI.
+#
+# La compilazione dei programmi eBPF richiede il target `bpfel-unknown-none`,
+# disponibile solo su toolchain `nightly` recenti (necessario per
+# generare bytecode BPF con rustc). L'agente userspace, al contrario,
+# viene compilato con il canale `stable` indicato sotto tramite
+# `cargo +stable build` nei rispettivi Makefile/CI job.
+#
+# Vedi docs/development/building.md per la spiegazione completa del
+# processo di build a due stadi (nightly per eBPF, stable per l'agente).
+
+[toolchain]
+channel = "1.79.0"
+components = ["rustfmt", "clippy", "rust-src", "llvm-tools-preview"]
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+profile = "default"
