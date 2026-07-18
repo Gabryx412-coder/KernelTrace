@@ -8,10 +8,10 @@ pub mod config;
 pub mod error;
 pub mod events;
 pub mod loader;
+pub mod process;
 pub mod telemetry;
 
 // Moduli pianificati, aggiunti nelle parti successive dello sviluppo:
-// pub mod process;
 // pub mod fim;
 // pub mod network;
 // pub mod container;
