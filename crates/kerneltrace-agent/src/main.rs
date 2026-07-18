@@ -1,9 +1,4 @@
 //! Entry point del binario `kerneltrace-agent`.
-//!
-//! Responsabilità: caricare la configurazione, inizializzare il logging,
-//! caricare e attaccare i programmi eBPF, costruire la baseline FIM,
-//! avviare la pipeline eventi e restare in esecuzione finché non viene
-//! ricevuto un segnale di terminazione.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -14,6 +9,7 @@ use kerneltrace_agent::{
     events::{Enricher, EventPipeline},
     fim::{Baseline, FimWatcher},
     loader,
+    network::{BeaconingDetector, BeaconingTracker, ConnectionTracker, ConnectionTrackerEnricher, ReverseShellDetector},
     process::{OrphanZombieScanner, PrivilegeEscalationEnricher, ProcessTree, ProcessTreeEnricher},
     telemetry,
 };
@@ -51,6 +47,9 @@ async fn main() -> anyhow::Result<()> {
     if cfg.monitoring.file_integrity {
         loader::attach_file_probes(&mut ebpf)?;
     }
+    if cfg.monitoring.network {
+        loader::attach_network_probes(&mut ebpf)?;
+    }
 
     let ring_buf = loader::take_ring_buffer(&mut ebpf)?;
 
@@ -60,7 +59,6 @@ async fn main() -> anyhow::Result<()> {
     let (output_sender, mut output_receiver) =
         tokio::sync::mpsc::channel(cfg.agent.pipeline_capacity);
 
-    // Stato condiviso del process monitoring.
     let process_tree = Arc::new(ProcessTree::new());
 
     let mut enrichers: Vec<Box<dyn Enricher>> = vec![
@@ -68,9 +66,6 @@ async fn main() -> anyhow::Result<()> {
         Box::new(PrivilegeEscalationEnricher::new()),
     ];
 
-    // File Integrity Monitoring: costruiamo la baseline prima di collegare
-    // il watcher alla pipeline, così che il primo evento su un path
-    // monitorato venga già confrontato con uno stato noto.
     if cfg.monitoring.file_integrity {
         let baseline = Arc::new(Baseline::new(cfg.monitoring.fim_hash_algorithm));
         let fim_watcher = FimWatcher::new(Arc::clone(&baseline), cfg.monitoring.fim_watch_paths.clone());
@@ -81,21 +76,29 @@ async fn main() -> anyhow::Result<()> {
         enrichers.push(Box::new(fim_watcher));
     }
 
-    // Task 1: legge il ring buffer BPF e inoltra i byte grezzi alla pipeline.
+    if cfg.monitoring.network {
+        let connection_tracker = Arc::new(ConnectionTracker::new());
+        let beaconing_tracker = Arc::new(BeaconingTracker::new());
+
+        enrichers.push(Box::new(ConnectionTrackerEnricher::new(Arc::clone(
+            &connection_tracker,
+        ))));
+        enrichers.push(Box::new(ReverseShellDetector));
+        enrichers.push(Box::new(BeaconingDetector::new(Arc::clone(
+            &beaconing_tracker,
+        ))));
+    }
+
     let reader_handle = tokio::spawn(async move {
         if let Err(err) = loader::run_ringbuf_reader(ring_buf, raw_sender).await {
             error!(error = %err, "ring buffer reader task terminated");
         }
     });
 
-    // Task 2: normalizza, arricchisce (process tree, privilege escalation,
-    // FIM) e inoltra gli eventi verso l'output.
     let pipeline_handle = tokio::spawn(async move {
         pipeline.run(enrichers, output_sender).await;
     });
 
-    // Task 3: scansione periodica di /proc per rilevare processi orfani e
-    // zombie.
     let scanner = OrphanZombieScanner::new(Arc::clone(&process_tree), Duration::from_secs(5));
     let scanner_handle = tokio::spawn(scanner.run());
 
