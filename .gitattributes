@@ -1,0 +1,29 @@
+# Normalizza automaticamente gli line ending in LF per tutti i file di testo.
+* text=auto eol=lf
+
+# Sorgenti
+*.rs text diff=rust
+*.py text diff=python
+*.yaml text
+*.yml text
+*.toml text
+*.json text
+*.md text
+
+# Script
+*.sh text eol=lf
+
+# Binari: mai normalizzare, mai diffare come testo
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.svg text
+*.o binary
+*.bpf.o binary
+*.woff binary
+*.woff2 binary
+
+# Escludi dal conteggio linguist (statistiche linguaggio GitHub)
+docs/** linguist-documentation
+examples/** linguist-documentation
+*.mmd linguist-documentation
