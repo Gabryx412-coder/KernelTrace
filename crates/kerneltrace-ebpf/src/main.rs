@@ -10,8 +10,6 @@
 mod maps;
 mod probes;
 
-use aya_ebpf::panic_handler;
-
 // Il panic handler per i target BPF non può fare nulla di utile (non esiste
 // unwinding, non esiste output su stderr): si limita a un loop infinito
 // dimostrabile dal verifier come "non terminante", pattern standard per i
@@ -21,8 +19,14 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-// Re-esportiamo le probe definite in `probes::process` come simboli di
-// primo livello del binario, così che `aya-ebpf` le registri come sezioni
-// ELF distinte (`tracepoint/sched/sched_process_exec`, ecc.), caricabili
-// indipendentemente dall'agente userspace.
+// Re-esportiamo tutte le probe come simboli di primo livello del binario,
+// così che `aya-ebpf` le registri come sezioni ELF distinte, caricabili e
+// attaccabili indipendentemente dall'agente userspace in base alla
+// configurazione (`monitoring.*` in kerneltrace.yaml).
+pub use probes::file::{probe_chmod, probe_chown, probe_openat, probe_rename, probe_unlink};
+pub use probes::memory::probe_mmap;
+pub use probes::mount::{probe_mount, probe_umount};
+pub use probes::network::{probe_accept, probe_bind, probe_connect, probe_listen};
+pub use probes::privilege::{probe_ptrace, probe_setgid, probe_setuid};
 pub use probes::process::{probe_exec, probe_process_fork};
+pub use probes::signal::probe_kill;
