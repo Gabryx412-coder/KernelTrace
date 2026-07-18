@@ -24,6 +24,11 @@ pub struct NormalizedEvent {
     /// Popolato in una fase successiva della pipeline (`enrichment`), se il
     /// processo appartiene a un container riconosciuto.
     pub container: Option<ContainerContext>,
+    /// Etichette applicate dai vari detector/enricher (es.
+    /// `privilege_escalation`), consultabili dal rules engine (Parte 10)
+    /// e dagli output sink senza dover ricalcolare la stessa logica.
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
