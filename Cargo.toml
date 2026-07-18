@@ -1,0 +1,102 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/kerneltrace-common",
+    "crates/kerneltrace-ebpf",
+    "crates/kerneltrace-agent",
+    "crates/kerneltrace-cli",
+]
+
+# I fuzz target vivono nel proprio workspace indipendente (fuzz/Cargo.toml)
+# per non inquinare le dipendenze del workspace principale con cargo-fuzz.
+exclude = [
+    "fuzz",
+    "examples/basic_monitoring",
+    "examples/custom_sink",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+authors = ["KernelTrace Contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/kerneltrace/kerneltrace"
+homepage = "https://kerneltrace.dev"
+documentation = "https://docs.kerneltrace.dev"
+readme = "README.md"
+keywords = ["ebpf", "hids", "security", "monitoring", "linux"]
+categories = ["command-line-utilities", "os::linux-apis"]
+
+# ---------------------------------------------------------------------------
+# Dipendenze condivise fra i crate del workspace.
+# Ogni crate membro referenzia queste versioni con `workspace = true`
+# per garantire coerenza e semplificare gli aggiornamenti.
+# ---------------------------------------------------------------------------
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.38", features = ["full"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+futures = "0.3"
+
+# eBPF (userspace loader)
+aya = "0.13"
+aya-log = "0.2"
+
+# eBPF (kernel-space, no_std)
+aya-ebpf = "0.1"
+aya-log-ebpf = "0.1"
+
+# Serializzazione
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+tracing-appender = "0.2"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Utilities
+bytes = "1.6"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.9", features = ["v4", "serde"] }
+regex = "1.10"
+once_cell = "1.19"
+parking_lot = "0.12"
+nix = { version = "0.29", features = ["process", "user", "fs", "signal"] }
+
+# Hashing (FIM)
+sha2 = "0.10"
+blake3 = "1.5"
+
+# Testing
+criterion = { version = "0.5", features = ["async_tokio"] }
+tempfile = "3.10"
+assert_cmd = "2.0"
+predicates = "3.1"
+proptest = "1.4"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.bench]
+inherits = "release"
+debug = true
+strip = false
