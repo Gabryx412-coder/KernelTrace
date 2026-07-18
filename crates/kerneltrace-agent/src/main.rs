@@ -1,9 +1,9 @@
 //! Entry point del binario `kerneltrace-agent`.
 //!
 //! Responsabilità: caricare la configurazione, inizializzare il logging,
-//! caricare e attaccare i programmi eBPF, avviare la pipeline eventi
-//! (con i detector di process monitoring) e restare in esecuzione finché
-//! non viene ricevuto un segnale di terminazione.
+//! caricare e attaccare i programmi eBPF, costruire la baseline FIM,
+//! avviare la pipeline eventi e restare in esecuzione finché non viene
+//! ricevuto un segnale di terminazione.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,7 +11,8 @@ use std::time::Duration;
 
 use kerneltrace_agent::{
     config,
-    events::{EventPipeline, Enricher},
+    events::{Enricher, EventPipeline},
+    fim::{Baseline, FimWatcher},
     loader,
     process::{OrphanZombieScanner, PrivilegeEscalationEnricher, ProcessTree, ProcessTreeEnricher},
     telemetry,
@@ -47,6 +48,9 @@ async fn main() -> anyhow::Result<()> {
     if cfg.monitoring.process {
         loader::attach_process_probes(&mut ebpf)?;
     }
+    if cfg.monitoring.file_integrity {
+        loader::attach_file_probes(&mut ebpf)?;
+    }
 
     let ring_buf = loader::take_ring_buffer(&mut ebpf)?;
 
@@ -56,14 +60,26 @@ async fn main() -> anyhow::Result<()> {
     let (output_sender, mut output_receiver) =
         tokio::sync::mpsc::channel(cfg.agent.pipeline_capacity);
 
-    // Stato condiviso del process monitoring: il process tree è usato sia
-    // dall'enricher nella pipeline sia dallo scanner periodico orfano/zombie.
+    // Stato condiviso del process monitoring.
     let process_tree = Arc::new(ProcessTree::new());
 
-    let enrichers: Vec<Box<dyn Enricher>> = vec![
+    let mut enrichers: Vec<Box<dyn Enricher>> = vec![
         Box::new(ProcessTreeEnricher::new(Arc::clone(&process_tree))),
         Box::new(PrivilegeEscalationEnricher::new()),
     ];
+
+    // File Integrity Monitoring: costruiamo la baseline prima di collegare
+    // il watcher alla pipeline, così che il primo evento su un path
+    // monitorato venga già confrontato con uno stato noto.
+    if cfg.monitoring.file_integrity {
+        let baseline = Arc::new(Baseline::new(cfg.monitoring.fim_hash_algorithm));
+        let fim_watcher = FimWatcher::new(Arc::clone(&baseline), cfg.monitoring.fim_watch_paths.clone());
+
+        let files_registered = fim_watcher.build_initial_baseline();
+        info!(files = files_registered, "FIM initial baseline built");
+
+        enrichers.push(Box::new(fim_watcher));
+    }
 
     // Task 1: legge il ring buffer BPF e inoltra i byte grezzi alla pipeline.
     let reader_handle = tokio::spawn(async move {
@@ -72,16 +88,14 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Task 2: normalizza, arricchisce (process tree + privilege escalation)
-    // e inoltra gli eventi verso l'output. Il rules engine e gli output
-    // sink veri e propri arrivano nelle Parti 10-11.
+    // Task 2: normalizza, arricchisce (process tree, privilege escalation,
+    // FIM) e inoltra gli eventi verso l'output.
     let pipeline_handle = tokio::spawn(async move {
         pipeline.run(enrichers, output_sender).await;
     });
 
     // Task 3: scansione periodica di /proc per rilevare processi orfani e
-    // zombie, indipendente dal flusso di eventi eBPF (vedi
-    // `process::lifecycle` per la motivazione architetturale).
+    // zombie.
     let scanner = OrphanZombieScanner::new(Arc::clone(&process_tree), Duration::from_secs(5));
     let scanner_handle = tokio::spawn(scanner.run());
 
