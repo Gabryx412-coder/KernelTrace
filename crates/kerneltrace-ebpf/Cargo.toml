@@ -1,0 +1,43 @@
+[package]
+name = "kerneltrace-ebpf"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "eBPF programs (CO-RE) implementing the kernel-side probes for KernelTrace"
+publish = false
+
+[[bin]]
+name = "kerneltrace-ebpf"
+path = "src/main.rs"
+
+[dependencies]
+kerneltrace-common = { path = "../kerneltrace-common", default-features = false }
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[profile.dev]
+opt-level = 3
+debug = false
+overflow-checks = false
+lto = false
+panic = "abort"
+
+[profile.release]
+opt-level = 3
+debug = false
+overflow-checks = false
+lto = true
+panic = "abort"
+codegen-units = 1
+
+# I programmi eBPF NON fanno parte del [workspace] radice (vedi Cargo.toml
+# principale, sezione `exclude`... in realtà qui è incluso come member perché
+# necessita solo del target aggiuntivo bpfel-unknown-none, non di un
+# workspace separato). La build a due stadi è gestita dal Makefile:
+# 1. `cargo +nightly build -Z build-std=core --target bpfel-unknown-none`
+#    per generare l'oggetto BPF;
+# 2. `cargo +stable build` per l'agente userspace, che include l'oggetto
+#    BPF generato tramite `include_bytes_aligned!` (vedi kerneltrace-agent).
