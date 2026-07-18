@@ -24,7 +24,7 @@ use crate::maps::EVENTS;
 /// Costruisce un `EventHeader` popolato con il contesto del processo
 /// correntemente in esecuzione, comune a tutte le probe di questo modulo.
 #[inline(always)]
-fn build_header(event_type: EventType) -> EventHeader {
+pub(crate) fn build_header(event_type: EventType) -> EventHeader {
     let pid_tgid = bpf_get_current_pid_tgid();
     let uid_gid = bpf_get_current_uid_gid();
     let comm = bpf_get_current_comm().unwrap_or([0u8; 16]);
