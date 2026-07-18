@@ -1,19 +1,17 @@
 //! # kerneltrace-agent
 //!
-//! Libreria dell'agente userspace di KernelTrace. Espone i moduli
-//! riutilizzabili anche dalla CLI (`kerneltrace-cli`) e dai test di
-//! integrazione a livello workspace (`tests/integration`).
+//! Libreria dell'agente userspace di KernelTrace.
 
 pub mod config;
 pub mod error;
 pub mod events;
 pub mod fim;
 pub mod loader;
+pub mod network;
 pub mod process;
 pub mod telemetry;
 
 // Moduli pianificati, aggiunti nelle parti successive dello sviluppo:
-// pub mod network;
 // pub mod container;
 // pub mod detection;
 // pub mod anomaly;
