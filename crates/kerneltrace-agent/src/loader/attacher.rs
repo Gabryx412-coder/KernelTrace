@@ -8,34 +8,14 @@ use crate::error::{AgentError, AgentResult};
 
 /// Byte compilati del binario eBPF, generato dal crate `kerneltrace-ebpf`
 /// e incluso staticamente nel binario dell'agente.
-///
-/// Il percorso è relativo alla directory di output della build eBPF
-/// (gestita dal Makefile radice, target `build-ebpf`), non al crate
-/// `kerneltrace-agent` stesso.
 static EBPF_PROGRAM_BYTES: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/kerneltrace-ebpf.bpf.o"));
 
 /// Carica l'oggetto eBPF in memoria e ne effettua il parsing tramite `aya`.
-///
-/// Richiede privilegi `CAP_BPF`/`CAP_SYS_ADMIN` (o root): un fallimento qui
-/// è quasi sempre dovuto a permessi insufficienti, quindi il messaggio di
-/// errore viene arricchito di conseguenza in `main.rs`.
 pub fn load_ebpf_object() -> AgentResult<Ebpf> {
     let ebpf = Ebpf::load(EBPF_PROGRAM_BYTES)?;
     info!("eBPF object loaded successfully");
     Ok(ebpf)
-}
-
-/// Attacca tutte le probe di process monitoring (`probe_exec`,
-/// `probe_process_fork`) ai rispettivi tracepoint del kernel.
-///
-/// Le probe aggiuntive (file/network/privilege/memory/signal/mount) vengono
-/// attaccate da funzioni analoghe aggiunte in una parte successiva, una
-/// volta implementate le rispettive sezioni ELF nel crate `kerneltrace-ebpf`.
-pub fn attach_process_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
-    attach_tracepoint(ebpf, "probe_exec", "sched", "sched_process_exec")?;
-    attach_tracepoint(ebpf, "probe_process_fork", "sched", "sched_process_fork")?;
-    Ok(())
 }
 
 fn attach_tracepoint(
@@ -66,6 +46,59 @@ fn attach_tracepoint(
         })?;
 
     info!(program = program_name, category, name, "eBPF probe attached");
+    Ok(())
+}
+
+/// Attacca le probe di process monitoring (`execve`/`clone`/`fork`/`vfork`).
+pub fn attach_process_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_exec", "sched", "sched_process_exec")?;
+    attach_tracepoint(ebpf, "probe_process_fork", "sched", "sched_process_fork")?;
+    Ok(())
+}
+
+/// Attacca le probe di file monitoring (`open`/`unlink`/`rename`/`chmod`/`chown`).
+pub fn attach_file_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_openat", "syscalls", "sys_enter_openat")?;
+    attach_tracepoint(ebpf, "probe_unlink", "syscalls", "sys_enter_unlinkat")?;
+    attach_tracepoint(ebpf, "probe_rename", "syscalls", "sys_enter_renameat2")?;
+    attach_tracepoint(ebpf, "probe_chmod", "syscalls", "sys_enter_fchmodat")?;
+    attach_tracepoint(ebpf, "probe_chown", "syscalls", "sys_enter_fchownat")?;
+    Ok(())
+}
+
+/// Attacca le probe di network monitoring (`connect`/`bind`/`listen`/`accept`).
+pub fn attach_network_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_connect", "syscalls", "sys_enter_connect")?;
+    attach_tracepoint(ebpf, "probe_bind", "syscalls", "sys_enter_bind")?;
+    attach_tracepoint(ebpf, "probe_listen", "syscalls", "sys_enter_listen")?;
+    attach_tracepoint(ebpf, "probe_accept", "syscalls", "sys_exit_accept4")?;
+    Ok(())
+}
+
+/// Attacca le probe di privilege monitoring (`ptrace`/`setuid`/`setgid`).
+pub fn attach_privilege_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_ptrace", "syscalls", "sys_enter_ptrace")?;
+    attach_tracepoint(ebpf, "probe_setuid", "syscalls", "sys_enter_setuid")?;
+    attach_tracepoint(ebpf, "probe_setgid", "syscalls", "sys_enter_setgid")?;
+    Ok(())
+}
+
+/// Attacca la probe di memory monitoring (`mmap`).
+pub fn attach_memory_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_mmap", "syscalls", "sys_enter_mmap")?;
+    Ok(())
+}
+
+/// Attacca la probe di signal monitoring (`kill`).
+pub fn attach_signal_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_kill", "syscalls", "sys_enter_kill")?;
+    Ok(())
+}
+
+/// Attacca le probe di mount monitoring (`mount`/`umount`).
+pub fn attach_mount_probes(ebpf: &mut Ebpf) -> AgentResult<()> {
+    attach_tracepoint(ebpf, "probe_mount", "syscalls", "sys_enter_mount")?;
+    attach_tracepoint(ebpf, "probe_umount", "syscalls", "sys_enter_umount")?;
     Ok(())
 }
 
