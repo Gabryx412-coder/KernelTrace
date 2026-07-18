@@ -1,0 +1,35 @@
+KernelTrace
+Copyright 2025 KernelTrace Contributors
+
+This product includes software developed by the KernelTrace project
+(https://github.com/kerneltrace/kerneltrace) and its contributors.
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file
+for the full text of the license.
+
+------------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------------
+
+KernelTrace depends on a number of third-party open source components,
+including but not limited to:
+
+  * aya / aya-ebpf / aya-log       - Apache-2.0 OR MIT
+  * tokio                          - MIT
+  * serde / serde_yaml / serde_json - Apache-2.0 OR MIT
+  * tracing / tracing-subscriber   - MIT
+  * clap                           - Apache-2.0 OR MIT
+  * thiserror / anyhow             - Apache-2.0 OR MIT
+
+A complete, automatically generated list of dependencies and their
+respective licenses is available by running:
+
+    cargo install cargo-license
+    cargo license
+
+or is published as part of each release under the "Third-Party Licenses"
+artifact attached to the GitHub release.
+
+This NOTICE file is provided for informational purposes only and does not
+modify the terms of the Apache License, Version 2.0 under which KernelTrace
+is distributed.
