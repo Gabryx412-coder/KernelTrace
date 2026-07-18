@@ -6,27 +6,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Evento normalizzato, pronto per detection engine e output sink.
-///
-/// A differenza delle struct `#[repr(C)]` di `kerneltrace-common` (pensate
-/// per l'efficienza di trasporto kernel -> userspace), questa struct è
-/// pensata per leggibilità, serializzazione JSON e arricchimento
-/// progressivo (container, process tree, hash file) nelle fasi successive
-/// della pipeline.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedEvent {
-    /// Identificatore univoco dell'evento, generato al momento della normalizzazione.
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
     pub event_kind: EventKind,
     pub process: ProcessContext,
-    /// Payload specifico del tipo di evento.
     pub payload: EventPayload,
-    /// Popolato in una fase successiva della pipeline (`enrichment`), se il
-    /// processo appartiene a un container riconosciuto.
     pub container: Option<ContainerContext>,
-    /// Etichette applicate dai vari detector/enricher (es.
-    /// `privilege_escalation`), consultabili dal rules engine (Parte 10)
-    /// e dagli output sink senza dover ricalcolare la stessa logica.
     #[serde(default)]
     pub tags: Vec<String>,
 }
@@ -76,9 +63,7 @@ pub enum ContainerRuntime {
     Kubernetes,
 }
 
-/// Payload specifico per tipo di evento; le varianti aggiuntive
-/// (file/network/ecc.) vengono popolate man mano che i moduli corrispondenti
-/// vengono implementati nelle parti successive.
+/// Payload specifico per tipo di evento.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EventPayload {
@@ -92,8 +77,52 @@ pub enum EventPayload {
         is_orphan: bool,
         is_zombie: bool,
     },
-    /// Placeholder generico per tipi di evento non ancora implementati in
-    /// questa parte dello sviluppo (file/network/ecc.).
+    File {
+        path: String,
+        new_path: Option<String>,
+        open_flags: u32,
+        mode: Option<u32>,
+        new_owner_uid: Option<u32>,
+        new_owner_gid: Option<u32>,
+    },
+    Network {
+        address_family: u8,
+        protocol: u8,
+        src_addr: String,
+        dst_addr: String,
+        src_port: u16,
+        dst_port: u16,
+        syscall: String,
+    },
+    Ptrace {
+        request: i64,
+        target_pid: u32,
+    },
+    Mmap {
+        addr: u64,
+        length: u64,
+        prot_flags: u32,
+        map_flags: u32,
+    },
+    Signal {
+        target_pid: i32,
+        signal: i32,
+    },
+    Mount {
+        source: Option<String>,
+        target: String,
+        filesystem_type: Option<String>,
+        is_umount: bool,
+    },
+    PrivilegeChange {
+        old_uid: u32,
+        new_uid: u32,
+        old_gid: u32,
+        new_gid: u32,
+        escalated_to_root: bool,
+    },
+    /// Placeholder generico per eventuali tipi di evento futuri non ancora
+    /// modellati esplicitamente.
     Raw {
         description: String,
     },
