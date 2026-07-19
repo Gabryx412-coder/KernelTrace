@@ -1,0 +1,28 @@
+# Rileva download sospetti: curl/wget verso URL con schema esplicito che
+# scaricano ed eseguono direttamente in pipeline (`| sh`, `| bash`), senza
+# passare da un file su disco — pattern comune di "fileless" download &
+# execute.
+id: builtin-suspicious-download-pipe-to-shell
+name: Download piped directly into a shell interpreter
+description: >
+  Un comando curl o wget i cui argomenti includono una pipe verso un
+  interprete di shell (`| sh`, `| bash`), pattern che scarica ed esegue
+  codice direttamente senza salvarlo su disco, tipico di installer di
+  malware "fileless".
+severity: critical
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: process.comm
+      operator: in
+      value: bash,sh,zsh,dash
+    - field: exec.args
+      operator: regex
+      value: "(curl|wget)\\s+.*\\|\\s*(sh|bash)"
+tags:
+  - suspicious_download
+  - mitre_t1105
+enabled: true
