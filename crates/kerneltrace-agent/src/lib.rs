@@ -2,6 +2,8 @@
 //!
 //! Libreria dell'agente userspace di KernelTrace.
 
+pub mod anomaly;
+pub mod api;
 pub mod config;
 pub mod container;
 pub mod detection;
@@ -12,11 +14,7 @@ pub mod loader;
 pub mod network;
 pub mod output;
 pub mod process;
+pub mod response;
 pub mod telemetry;
-
-// Moduli pianificati, aggiunti nelle parti successive dello sviluppo:
-// pub mod anomaly;
-// pub mod response;
-// pub mod api;
 
 pub use error::{AgentError, AgentResult};
