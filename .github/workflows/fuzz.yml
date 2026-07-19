@@ -1,0 +1,72 @@
+name: Fuzzing
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Esecuzione notturna più lunga (budget di tempo maggiore rispetto al
+    # controllo rapido su ogni PR), per individuare bug che richiedono più
+    # iterazioni per emergere.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz-quick-check:
+    name: Quick fuzz check (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fuzz_rule_parser, fuzz_event_normalizer, fuzz_config_loader]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nightly Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Run quick fuzz check (60 seconds per target)
+        run: |
+          cd fuzz
+          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=60
+
+  fuzz-nightly-extended:
+    name: Extended nightly fuzz run (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fuzz_rule_parser, fuzz_event_normalizer, fuzz_config_loader]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nightly Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Run extended fuzz session (15 minutes per target)
+        run: |
+          cd fuzz
+          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=900
+
+      - name: Upload crash artifacts if any
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
