@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kerneltrace_agent::{
-    config,
+    config::{self, OutputSinkKind},
     container::{ContainerResolver, ContainerResolverConfig},
     detection::{load_all_rules, DetectionEngine},
     events::{Enricher, EventPipeline},
@@ -15,11 +15,42 @@ use kerneltrace_agent::{
         BeaconingDetector, BeaconingTracker, ConnectionTracker, ConnectionTrackerEnricher,
         ReverseShellDetector,
     },
+    output::{FileSink, JsonSink, OutputManager, Sink, StdoutSink},
     process::{OrphanZombieScanner, PrivilegeEscalationEnricher, ProcessTree, ProcessTreeEnricher},
     telemetry,
 };
 use tokio::signal;
 use tracing::{error, info, warn};
+
+/// Costruisce l'elenco di sink attivi in base alla configurazione. Un
+/// singolo sink che fallisce l'inizializzazione (es. permessi negati sul
+/// path di output) viene saltato con un warning, senza impedire
+/// all'agente di avviarsi con i sink rimanenti.
+fn build_sinks(cfg: &kerneltrace_agent::config::Config) -> Vec<Box<dyn Sink>> {
+    let mut sinks: Vec<Box<dyn Sink>> = Vec::new();
+
+    for kind in &cfg.output.sinks {
+        match kind {
+            OutputSinkKind::Stdout => sinks.push(Box::new(StdoutSink::new())),
+            OutputSinkKind::File => match &cfg.output.file_path {
+                Some(path) => match FileSink::new(path) {
+                    Ok(sink) => sinks.push(Box::new(sink)),
+                    Err(err) => warn!(error = %err, path = %path.display(), "failed to initialize file sink, skipping"),
+                },
+                None => warn!("file sink configured without output.file_path, skipping"),
+            },
+            OutputSinkKind::Json => match &cfg.output.file_path {
+                Some(path) => match JsonSink::new(path) {
+                    Ok(sink) => sinks.push(Box::new(sink)),
+                    Err(err) => warn!(error = %err, path = %path.display(), "failed to initialize json sink, skipping"),
+                },
+                None => warn!("json sink configured without output.file_path, skipping"),
+            },
+        }
+    }
+
+    sinks
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -101,10 +132,6 @@ async fn main() -> anyhow::Result<()> {
         ))));
     }
 
-    // Il rules engine viene per ultimo: valuta gli eventi dopo che tutti
-    // gli altri arricchitori (container, process tree, FIM, network)
-    // hanno già popolato contesto e tag, di cui molte regole dipendono
-    // (es. `process.parent_comm`, `tag: suspected_reverse_shell`).
     let rules = load_all_rules(&cfg.rules.directories, cfg.rules.strict_parsing).unwrap_or_else(|err| {
         warn!(error = %err, "failed to load detection rules, starting with an empty rule set");
         Vec::new()
@@ -112,6 +139,9 @@ async fn main() -> anyhow::Result<()> {
     let detection_engine = DetectionEngine::new(rules);
     let sequence_pruner_handle = detection_engine.spawn_sequence_pruner();
     enrichers.push(Box::new(detection_engine));
+
+    let output_manager = Arc::new(OutputManager::new(build_sinks(&cfg)));
+    info!(sinks = output_manager.sink_count(), "output sinks initialized");
 
     let reader_handle = tokio::spawn(async move {
         if let Err(err) = loader::run_ringbuf_reader(ring_buf, raw_sender).await {
@@ -126,12 +156,10 @@ async fn main() -> anyhow::Result<()> {
     let scanner = OrphanZombieScanner::new(Arc::clone(&process_tree), Duration::from_secs(5));
     let scanner_handle = tokio::spawn(scanner.run());
 
+    let consumer_output_manager = Arc::clone(&output_manager);
     let consumer_handle = tokio::spawn(async move {
         while let Some(event) = output_receiver.recv().await {
-            match serde_json::to_string(&event) {
-                Ok(json) => println!("{json}"),
-                Err(err) => error!(error = %err, "failed to serialize event to JSON"),
-            }
+            consumer_output_manager.dispatch(&event);
         }
     });
 
@@ -145,6 +173,8 @@ async fn main() -> anyhow::Result<()> {
     scanner_handle.abort();
     sequence_pruner_handle.abort();
     consumer_handle.abort();
+
+    output_manager.flush_all();
 
     Ok(())
 }
