@@ -9,32 +9,55 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Configurazione radice dell'agente KernelTrace.
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    /// Impostazioni generali dell'agente.
     #[serde(default)]
     pub agent: AgentSettings,
-
-    /// Impostazioni di logging/tracing.
     #[serde(default)]
     pub logging: LoggingSettings,
-
-    /// Quali categorie di monitoring sono attive.
     #[serde(default)]
     pub monitoring: MonitoringSettings,
-
-    /// Configurazione del rules engine.
     #[serde(default)]
     pub rules: RulesSettings,
-
-    /// Configurazione degli output sink.
     #[serde(default)]
     pub output: OutputSettings,
-
-    /// Configurazione container awareness.
     #[serde(default)]
     pub container: ContainerSettings,
+    /// Configurazione delle azioni di risposta automatica (Parte 12):
+    /// nessuna azione distruttiva concreta è ancora implementata, ma la
+    /// sezione è già presente in schema per compatibilità futura del
+    /// formato di configurazione.
+    #[serde(default)]
+    pub response: ResponseSettings,
+}
+
+/// Impostazioni del modulo di risposta automatica.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResponseSettings {
+    /// Se `true` (default), nessuna azione di risposta produce un effetto
+    /// reale sul sistema: viene solo loggato l'intento. Deve essere
+    /// esplicitamente impostato a `false` da un operatore consapevole
+    /// prima che qualunque azione distruttiva (kill, blocco IP, quarantena)
+    /// venga eseguita realmente.
+    #[serde(default = "default_true")]
+    pub dry_run: bool,
+    /// Se `false`, il modulo di risposta non viene nemmeno inizializzato
+    /// (nessuna azione, nemmeno in dry-run). Utile per ambienti dove si
+    /// vuole solo il monitoring senza alcuna valutazione di risposta.
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+impl Default for ResponseSettings {
+    fn default() -> Self {
+        Self {
+            dry_run: true,
+            enabled: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
