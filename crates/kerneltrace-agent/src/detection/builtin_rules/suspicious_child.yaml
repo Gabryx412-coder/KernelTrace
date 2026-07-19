@@ -1,0 +1,27 @@
+# Rileva una shell generata come figlio diretto di un processo server
+# (nginx, apache, ecc.), pattern classico di web shell / RCE su
+# applicazioni web compromesse.
+id: builtin-shell-from-webserver
+name: Shell spawned by web server process
+description: >
+  Un interprete di shell (bash/sh/zsh/dash) è stato eseguito come figlio
+  diretto di un processo server web comunemente esposto (nginx, apache,
+  httpd, caddy), un pattern fortemente indicativo di remote code
+  execution tramite una web shell.
+severity: critical
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: process.comm
+      operator: in
+      value: bash,sh,zsh,dash
+    - field: process.parent_comm
+      operator: in
+      value: nginx,apache2,httpd,caddy,php-fpm
+tags:
+  - suspicious_child_process
+  - mitre_t1190
+enabled: true
