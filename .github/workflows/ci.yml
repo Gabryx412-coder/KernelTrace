@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-${{ matrix.os }}
+
+      - name: Install system dependencies (libbpf headers, bpftool)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libelf-dev \
+            zlib1g-dev \
+            linux-tools-common \
+            linux-tools-generic
+
+      # I programmi eBPF richiedono nightly + rust-src per il target BPF;
+      # la CI installa il canale nightly separatamente dal toolchain
+      # stable usato per l'agente/CLI, coerentemente con la build a due
+      # stadi documentata in docs/development/building.md.
+      - name: Install nightly toolchain for eBPF target
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+          targets: bpfel-unknown-none
+
+      - name: Build eBPF programs
+        run: |
+          cd crates/kerneltrace-ebpf
+          cargo +nightly build -Z build-std=core --release --target bpfel-unknown-none
+
+      - name: Build workspace (stable)
+        run: cargo build --workspace --exclude kerneltrace-ebpf --all-features
+
+      - name: Run unit and integration tests
+        run: cargo test --workspace --exclude kerneltrace-ebpf --all-features -- --test-threads=4
+
+      - name: Run doc tests
+        run: cargo test --workspace --exclude kerneltrace-ebpf --doc
+
+  python-management-tool:
+    name: Python management tool tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: management/pyproject.toml
+
+      - name: Install package with dev dependencies
+        run: |
+          cd management
+          pip install -e ".[dev]"
+
+      - name: Run ruff lint
+        run: |
+          cd management
+          ruff check .
+
+      - name: Run mypy type checking
+        run: |
+          cd management
+          mypy kerneltrace_mgmt
+
+      - name: Run pytest
+        run: |
+          cd management
+          pytest --cov=kerneltrace_mgmt --cov-report=term-missing
