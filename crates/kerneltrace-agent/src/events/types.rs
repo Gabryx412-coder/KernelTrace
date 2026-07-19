@@ -36,6 +36,10 @@ pub enum EventKind {
     PrivilegeChange,
 }
 
+// In ProcessContext, aggiungiamo il nome del processo padre (risolto dal
+// ProcessTree quando disponibile), necessario per regole come "bash
+// spawnata da nginx".
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessContext {
     pub pid: u32,
@@ -45,6 +49,11 @@ pub struct ProcessContext {
     pub gid: u32,
     pub comm: String,
     pub cgroup_id: u64,
+    /// Nome del processo padre, risolto da `ProcessTreeEnricher` quando il
+    /// PPID è presente nel process tree tracciato. `None` se il padre non
+    /// è (ancora) stato osservato.
+    #[serde(default)]
+    pub parent_comm: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
