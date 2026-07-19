@@ -1,0 +1,25 @@
+# Rileva l'uso di nc/ncat/netcat con esecuzione di comandi (-e), o socat
+# con handler exec:/system:, tecniche standard di reverse/bind shell.
+id: builtin-netcat-socat-exec
+name: netcat or socat used for command execution over network
+description: >
+  nc/ncat/netcat invocato con il flag di esecuzione comandi (-e), oppure
+  socat con un handler exec: o system:, entrambi pattern standard per
+  stabilire una shell remota tramite utility di rete generiche.
+severity: critical
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: process.comm
+      operator: regex
+      value: "^(nc|ncat|netcat|socat)"
+    - field: exec.args
+      operator: regex
+      value: "(-e\\b|exec:|system:)"
+tags:
+  - netcat_socat_shell
+  - mitre_t1059
+enabled: true
