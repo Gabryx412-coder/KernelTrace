@@ -1,0 +1,19 @@
+flowchart LR
+    A[/proc/pid/cgroup] -->|read on first event per pid| CR[ContainerResolver]
+    B[fork/clone events] --> PT[ProcessTree]
+    PT -->|resolve ppid + parent_comm| EX[exec events]
+    C[FIM baseline] -->|hash + metadata| FW[FimWatcher]
+    D[connection history] --> BC[BeaconingTracker]
+    D --> CT[ConnectionTracker]
+
+    CR --> NE[NormalizedEvent]
+    EX --> NE
+    FW --> NE
+    BC --> NE
+    CT --> NE
+
+    NE --> RE[Rules Engine]
+    RE -->|tags: rule:id, severity-based logs| SINKS[Output Sinks]
+    SINKS --> STDOUT[stdout]
+    SINKS --> JSONFILE[events.jsonl]
+    SINKS --> LOGFILE[events.log]
