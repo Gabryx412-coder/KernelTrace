@@ -12,7 +12,7 @@
 ## Installazione da sorgente
 
 ```bash
-git clone https://github.com/kerneltrace/kerneltrace.git
+git clone https://github.com/Gabryx412-coder/KernelTrace.git
 cd kerneltrace
 
 # Installa il toolchain nightly richiesto per il target BPF
