@@ -1,0 +1,46 @@
+name: Clippy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: clippy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clippy:
+    name: Clippy lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run clippy (deny warnings)
+        run: |
+          cargo clippy --workspace --exclude kerneltrace-ebpf --all-targets --all-features -- -D warnings
+
+      # Il crate eBPF richiede il target bpfel-unknown-none e nightly;
+      # lo lintiamo separatamente per non bloccare il resto della CI se
+      # il toolchain nightly ha un problema transitorio non correlato al
+      # nostro codice.
+      - name: Install nightly toolchain for eBPF clippy
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy, rust-src
+          targets: bpfel-unknown-none
+
+      - name: Run clippy on eBPF crate
+        run: |
+          cd crates/kerneltrace-ebpf
+          cargo +nightly clippy -Z build-std=core --target bpfel-unknown-none -- -D warnings
