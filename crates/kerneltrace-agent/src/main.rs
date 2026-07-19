@@ -7,6 +7,7 @@ use std::time::Duration;
 use kerneltrace_agent::{
     config,
     container::{ContainerResolver, ContainerResolverConfig},
+    detection::{load_all_rules, DetectionEngine},
     events::{Enricher, EventPipeline},
     fim::{Baseline, FimWatcher},
     loader,
@@ -18,7 +19,7 @@ use kerneltrace_agent::{
     telemetry,
 };
 use tokio::signal;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -65,10 +66,6 @@ async fn main() -> anyhow::Result<()> {
 
     let process_tree = Arc::new(ProcessTree::new());
 
-    // Il ContainerResolver viene per primo nella catena: il contesto
-    // container che popola è potenzialmente utile anche ai detector
-    // successivi (es. regole differenziate per processi containerizzati
-    // nel rules engine, Parte 10).
     let mut enrichers: Vec<Box<dyn Enricher>> = vec![Box::new(ContainerResolver::new(
         ContainerResolverConfig {
             docker: cfg.container.docker,
@@ -104,6 +101,18 @@ async fn main() -> anyhow::Result<()> {
         ))));
     }
 
+    // Il rules engine viene per ultimo: valuta gli eventi dopo che tutti
+    // gli altri arricchitori (container, process tree, FIM, network)
+    // hanno già popolato contesto e tag, di cui molte regole dipendono
+    // (es. `process.parent_comm`, `tag: suspected_reverse_shell`).
+    let rules = load_all_rules(&cfg.rules.directories, cfg.rules.strict_parsing).unwrap_or_else(|err| {
+        warn!(error = %err, "failed to load detection rules, starting with an empty rule set");
+        Vec::new()
+    });
+    let detection_engine = DetectionEngine::new(rules);
+    let sequence_pruner_handle = detection_engine.spawn_sequence_pruner();
+    enrichers.push(Box::new(detection_engine));
+
     let reader_handle = tokio::spawn(async move {
         if let Err(err) = loader::run_ringbuf_reader(ring_buf, raw_sender).await {
             error!(error = %err, "ring buffer reader task terminated");
@@ -134,6 +143,7 @@ async fn main() -> anyhow::Result<()> {
     reader_handle.abort();
     pipeline_handle.abort();
     scanner_handle.abort();
+    sequence_pruner_handle.abort();
     consumer_handle.abort();
 
     Ok(())
