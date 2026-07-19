@@ -4,7 +4,9 @@
 //! nel proprio formato (vedi note in `kerneltrace-ebpf::probes::process`);
 //! questo modulo colma il vuoto mantenendo in memoria, lato userspace, la
 //! mappa pid -> ppid costruita a partire dagli eventi di fork/clone/vfork,
-//! e la usa per risolvere il PPID mancante sugli eventi di exec.
+//! e la usa per risolvere il PPID mancante sugli eventi di exec, oltre a
+//! risolvere il nome del processo padre (`parent_comm`), usato dal rules
+//! engine (Parte 10) per regole come "shell spawnata da nginx".
 
 use std::collections::HashMap;
 
@@ -14,7 +16,8 @@ use tracing::trace;
 use crate::events::{Enricher, EventKind, EventPayload, NormalizedEvent};
 
 /// Nodo del process tree: stato minimo necessario per la risoluzione del
-/// PPID e per il rilevamento di processi orfani (modulo `lifecycle`).
+/// PPID, del nome del processo padre, e per il rilevamento di processi
+/// orfani (modulo `lifecycle`).
 #[derive(Debug, Clone)]
 pub struct ProcessNode {
     pub pid: u32,
@@ -66,6 +69,13 @@ impl ProcessTree {
         self.nodes.read().get(&pid).map(|n| n.ppid)
     }
 
+    /// Risolve il nome (`comm`) di un processo noto al tree, usato per
+    /// popolare `ProcessContext::parent_comm` sugli eventi `exec` (Parte 10,
+    /// necessario per regole come "bash spawnata da nginx").
+    pub fn comm_of(&self, pid: u32) -> Option<String> {
+        self.nodes.read().get(&pid).map(|n| n.comm.clone())
+    }
+
     /// Restituisce la catena di antenati di un processo, dal genitore
     /// diretto fino alla radice conosciuta, limitata a `max_depth` per
     /// evitare loop in caso di dati inconsistenti (es. cicli spuri dovuti
@@ -106,9 +116,12 @@ impl ProcessTree {
     }
 }
 
-/// Arricchitore che mantiene aggiornato il [`ProcessTree`] e risolve il
-/// PPID mancante sugli eventi di `exec` (la cui probe eBPF, per limiti del
-/// formato del tracepoint, non può popolarlo direttamente in kernel-space).
+/// Arricchitore che mantiene aggiornato il [`ProcessTree`] e risolve, sugli
+/// eventi di `exec`:
+/// - il PPID mancante (la probe eBPF non può popolarlo direttamente in
+///   kernel-space, vedi limiti del formato del tracepoint `sched_process_exec`);
+/// - il nome del processo padre (`parent_comm`), usato dal rules engine
+///   per regole basate sul processo genitore.
 pub struct ProcessTreeEnricher {
     tree: std::sync::Arc<ProcessTree>,
 }
@@ -128,9 +141,14 @@ impl Enricher for ProcessTreeEnricher {
                         .record(event.process.pid, event.process.ppid, &event.process.comm);
                 }
             }
-            EventKind::Exec if event.process.ppid == 0 => {
-                if let Some(ppid) = self.tree.resolve_ppid(event.process.pid) {
-                    event.process.ppid = ppid;
+            EventKind::Exec => {
+                if event.process.ppid == 0 {
+                    if let Some(ppid) = self.tree.resolve_ppid(event.process.pid) {
+                        event.process.ppid = ppid;
+                    }
+                }
+                if event.process.ppid != 0 {
+                    event.process.parent_comm = self.tree.comm_of(event.process.ppid);
                 }
             }
             _ => {}
@@ -149,6 +167,15 @@ mod tests {
 
         assert_eq!(tree.resolve_ppid(200), Some(100));
         assert_eq!(tree.resolve_ppid(999), None);
+    }
+
+    #[test]
+    fn resolves_comm_of_known_pid() {
+        let tree = ProcessTree::new();
+        tree.record(100, 1, "nginx");
+
+        assert_eq!(tree.comm_of(100), Some("nginx".to_string()));
+        assert_eq!(tree.comm_of(999), None);
     }
 
     #[test]
