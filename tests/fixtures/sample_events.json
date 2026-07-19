@@ -1,0 +1,77 @@
+[
+  {
+    "id": "b6e6a2b0-8f0a-4e0e-9f0a-000000000001",
+    "timestamp": "2026-01-15T10:23:41.512Z",
+    "event_kind": "exec",
+    "process": {
+      "pid": 4821,
+      "tgid": 4821,
+      "ppid": 4802,
+      "uid": 33,
+      "gid": 33,
+      "comm": "sh",
+      "cgroup_id": 0,
+      "parent_comm": "nginx"
+    },
+    "payload": {
+      "type": "exec",
+      "filename": "/bin/sh",
+      "args": ["-c", "id"]
+    },
+    "container": null,
+    "tags": ["rule:builtin-shell-from-webserver", "suspicious_child_process", "mitre_t1190"]
+  },
+  {
+    "id": "b6e6a2b0-8f0a-4e0e-9f0a-000000000002",
+    "timestamp": "2026-01-15T10:24:02.118Z",
+    "event_kind": "connect",
+    "process": {
+      "pid": 5310,
+      "tgid": 5310,
+      "ppid": 1,
+      "uid": 0,
+      "gid": 0,
+      "comm": "malware",
+      "cgroup_id": 0,
+      "parent_comm": null
+    },
+    "payload": {
+      "type": "network",
+      "address_family": 4,
+      "protocol": 6,
+      "src_addr": "0.0.0.0",
+      "dst_addr": "203.0.113.77",
+      "src_port": 0,
+      "dst_port": 4444,
+      "syscall": "connect"
+    },
+    "container": null,
+    "tags": ["suspected_beaconing"]
+  },
+  {
+    "id": "b6e6a2b0-8f0a-4e0e-9f0a-000000000003",
+    "timestamp": "2026-01-15T10:25:17.903Z",
+    "event_kind": "file_change",
+    "process": {
+      "pid": 100,
+      "tgid": 100,
+      "ppid": 1,
+      "uid": 0,
+      "gid": 0,
+      "comm": "vim",
+      "cgroup_id": 0,
+      "parent_comm": "bash"
+    },
+    "payload": {
+      "type": "file",
+      "path": "/etc/passwd",
+      "new_path": null,
+      "open_flags": 0,
+      "mode": null,
+      "new_owner_uid": null,
+      "new_owner_gid": null
+    },
+    "container": null,
+    "tags": ["fim_content_changed"]
+  }
+]
