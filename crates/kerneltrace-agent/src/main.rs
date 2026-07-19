@@ -6,10 +6,14 @@ use std::time::Duration;
 
 use kerneltrace_agent::{
     config,
+    container::{ContainerResolver, ContainerResolverConfig},
     events::{Enricher, EventPipeline},
     fim::{Baseline, FimWatcher},
     loader,
-    network::{BeaconingDetector, BeaconingTracker, ConnectionTracker, ConnectionTrackerEnricher, ReverseShellDetector},
+    network::{
+        BeaconingDetector, BeaconingTracker, ConnectionTracker, ConnectionTrackerEnricher,
+        ReverseShellDetector,
+    },
     process::{OrphanZombieScanner, PrivilegeEscalationEnricher, ProcessTree, ProcessTreeEnricher},
     telemetry,
 };
@@ -61,14 +65,25 @@ async fn main() -> anyhow::Result<()> {
 
     let process_tree = Arc::new(ProcessTree::new());
 
-    let mut enrichers: Vec<Box<dyn Enricher>> = vec![
-        Box::new(ProcessTreeEnricher::new(Arc::clone(&process_tree))),
-        Box::new(PrivilegeEscalationEnricher::new()),
-    ];
+    // Il ContainerResolver viene per primo nella catena: il contesto
+    // container che popola è potenzialmente utile anche ai detector
+    // successivi (es. regole differenziate per processi containerizzati
+    // nel rules engine, Parte 10).
+    let mut enrichers: Vec<Box<dyn Enricher>> = vec![Box::new(ContainerResolver::new(
+        ContainerResolverConfig {
+            docker: cfg.container.docker,
+            podman: cfg.container.podman,
+            kubernetes: cfg.container.kubernetes,
+        },
+    ))];
+
+    enrichers.push(Box::new(ProcessTreeEnricher::new(Arc::clone(&process_tree))));
+    enrichers.push(Box::new(PrivilegeEscalationEnricher::new()));
 
     if cfg.monitoring.file_integrity {
         let baseline = Arc::new(Baseline::new(cfg.monitoring.fim_hash_algorithm));
-        let fim_watcher = FimWatcher::new(Arc::clone(&baseline), cfg.monitoring.fim_watch_paths.clone());
+        let fim_watcher =
+            FimWatcher::new(Arc::clone(&baseline), cfg.monitoring.fim_watch_paths.clone());
 
         let files_registered = fim_watcher.build_initial_baseline();
         info!(files = files_registered, "FIM initial baseline built");
