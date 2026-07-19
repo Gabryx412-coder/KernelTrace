@@ -10,13 +10,13 @@ pub mod events;
 pub mod fim;
 pub mod loader;
 pub mod network;
+pub mod output;
 pub mod process;
 pub mod telemetry;
 
 // Moduli pianificati, aggiunti nelle parti successive dello sviluppo:
 // pub mod anomaly;
 // pub mod response;
-// pub mod output;
 // pub mod api;
 
 pub use error::{AgentError, AgentResult};
