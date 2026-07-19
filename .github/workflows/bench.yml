@@ -1,0 +1,57 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Consente anche l'esecuzione manuale, utile quando si vuole ottenere
+  # un report di benchmark aggiornato senza attendere il prossimo push.
+  workflow_dispatch:
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmarks:
+    name: Run criterion benchmarks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Necessario per il confronto storico dei benchmark tramite
+          # github-action-benchmark, che richiede accesso alla cronologia
+          # dei risultati sul branch gh-pages.
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run pipeline benchmark
+        run: |
+          cd crates/kerneltrace-agent
+          cargo bench --bench pipeline_bench -- --output-format bencher | tee ../../pipeline-bench-output.txt
+
+      - name: Run detection engine benchmark
+        run: |
+          cd crates/kerneltrace-agent
+          cargo bench --bench detection_bench -- --output-format bencher | tee ../../detection-bench-output.txt
+
+      # Confronta i risultati con lo storico salvato sul branch gh-pages e
+      # commenta automaticamente la pull request in caso di regressione
+      # di performance superiore alla soglia configurata.
+      - name: Store benchmark result and detect regressions
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: cargo
+          output-file-path: pipeline-bench-output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.ref == 'refs/heads/main' }}
+          comment-on-alert: true
+          alert-threshold: "150%"
+          fail-on-alert: false
