@@ -3,6 +3,7 @@
 //! Libreria dell'agente userspace di KernelTrace.
 
 pub mod config;
+pub mod container;
 pub mod error;
 pub mod events;
 pub mod fim;
@@ -12,7 +13,6 @@ pub mod process;
 pub mod telemetry;
 
 // Moduli pianificati, aggiunti nelle parti successive dello sviluppo:
-// pub mod container;
 // pub mod detection;
 // pub mod anomaly;
 // pub mod response;
