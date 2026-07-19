@@ -85,6 +85,7 @@ fn process_context_from_header(header: &EventHeader) -> ProcessContext {
         gid: header.gid,
         comm,
         cgroup_id: header.cgroup_id,
+        parent_comm: None,
     }
 }
 
