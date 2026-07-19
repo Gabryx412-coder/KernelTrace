@@ -1,0 +1,40 @@
+[package]
+name = "kerneltrace-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+bytes = { version = "1.6" }
+arbitrary = { version = "1.3", features = ["derive"] }
+
+kerneltrace-agent = { path = "../crates/kerneltrace-agent" }
+kerneltrace-common = { path = "../crates/kerneltrace-common", features = ["std"] }
+
+[[bin]]
+name = "fuzz_rule_parser"
+path = "fuzz_targets/fuzz_rule_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_event_normalizer"
+path = "fuzz_targets/fuzz_event_normalizer.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_config_loader"
+path = "fuzz_targets/fuzz_config_loader.rs"
+test = false
+doc = false
+bench = false
+
+[profile.release]
+debug = 1
