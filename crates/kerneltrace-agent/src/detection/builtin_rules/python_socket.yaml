@@ -1,0 +1,30 @@
+# Rileva script Python/Perl/Ruby/PHP che aprono un socket e duplicano i
+# file descriptor su stdin/stdout, pattern classico di reverse shell
+# scritte in linguaggi di scripting.
+id: builtin-scripting-socket-shell
+name: Scripting language opening raw socket for shell access
+description: >
+  Un interprete di linguaggio di scripting (python, perl, ruby, php) è
+  stato eseguito con argomenti che referenziano contemporaneamente
+  `socket` e `dup2`, pattern standard delle reverse shell "one-liner"
+  scritte in linguaggi di scripting.
+severity: critical
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: process.comm
+      operator: regex
+      value: "^(python[23]?|perl|ruby|php)$"
+    - field: exec.args
+      operator: regex
+      value: "socket"
+    - field: exec.args
+      operator: regex
+      value: "dup2"
+tags:
+  - scripting_reverse_shell
+  - mitre_t1059_006
+enabled: true
