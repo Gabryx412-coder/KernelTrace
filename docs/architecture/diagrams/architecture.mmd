@@ -1,0 +1,38 @@
+graph TB
+    subgraph Kernel["Kernel space"]
+        P1["execve / execveat<br/>tracepoint"]
+        P2["open / unlink / rename<br/>chmod / chown"]
+        P3["connect / bind<br/>listen / accept"]
+        P4["ptrace / setuid / setgid"]
+        P5["mmap / kill / mount"]
+        RB[("Ring Buffer<br/>EVENTS map")]
+        P1 --> RB
+        P2 --> RB
+        P3 --> RB
+        P4 --> RB
+        P5 --> RB
+    end
+
+    subgraph Agent["kerneltrace-agent (userspace)"]
+        LOADER["loader::ringbuf_reader<br/>(AsyncFd, tokio)"]
+        NORM["events::normalize"]
+        ENR1["ContainerResolver"]
+        ENR2["ProcessTreeEnricher"]
+        ENR3["FimWatcher"]
+        ENR4["Network detectors"]
+        ENG["DetectionEngine<br/>(rules engine)"]
+        OUT["OutputManager"]
+        RESP["ResponseDispatcher<br/>(dry-run default)"]
+
+        LOADER --> NORM --> ENR1 --> ENR2 --> ENR3 --> ENR4 --> ENG --> OUT
+        ENG --> RESP
+    end
+
+    subgraph Management["Management"]
+        CLI["kerneltrace-cli<br/>(Rust, privileged start)"]
+        MGMT["kerneltrace-mgmt<br/>(Python, unprivileged)"]
+    end
+
+    RB -.->|zero-copy read| LOADER
+    OUT -->|stdout / JSON Lines| MGMT
+    CLI -->|spawns| Agent
