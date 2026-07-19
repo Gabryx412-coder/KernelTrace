@@ -17,15 +17,12 @@ use kerneltrace_agent::{
     },
     output::{FileSink, JsonSink, OutputManager, Sink, StdoutSink},
     process::{OrphanZombieScanner, PrivilegeEscalationEnricher, ProcessTree, ProcessTreeEnricher},
+    response::{LoggingOnlyResponseAction, ResponseDispatcher},
     telemetry,
 };
 use tokio::signal;
 use tracing::{error, info, warn};
 
-/// Costruisce l'elenco di sink attivi in base alla configurazione. Un
-/// singolo sink che fallisce l'inizializzazione (es. permessi negati sul
-/// path di output) viene saltato con un warning, senza impedire
-/// all'agente di avviarsi con i sink rimanenti.
 fn build_sinks(cfg: &kerneltrace_agent::config::Config) -> Vec<Box<dyn Sink>> {
     let mut sinks: Vec<Box<dyn Sink>> = Vec::new();
 
@@ -50,6 +47,25 @@ fn build_sinks(cfg: &kerneltrace_agent::config::Config) -> Vec<Box<dyn Sink>> {
     }
 
     sinks
+}
+
+/// Costruisce il dispatcher di risposta automatica se abilitato in
+/// configurazione. In questa fase del progetto sono disponibili solo
+/// azioni "logging-only" (nessun effetto reale): predispone il pattern di
+/// wiring per le azioni concrete (kill/blocco IP/quarantena) pianificate
+/// in ROADMAP.md, senza introdurle prematuramente.
+fn build_response_dispatcher(
+    cfg: &kerneltrace_agent::config::Config,
+) -> Option<ResponseDispatcher> {
+    if !cfg.response.enabled {
+        return None;
+    }
+
+    let actions: Vec<Box<dyn kerneltrace_agent::response::ResponseAction>> = vec![Box::new(
+        LoggingOnlyResponseAction::new("log-critical-detections", "rule:builtin-shell-from-webserver"),
+    )];
+
+    Some(ResponseDispatcher::new(actions, cfg.response.dry_run))
 }
 
 #[tokio::main]
@@ -143,6 +159,15 @@ async fn main() -> anyhow::Result<()> {
     let output_manager = Arc::new(OutputManager::new(build_sinks(&cfg)));
     info!(sinks = output_manager.sink_count(), "output sinks initialized");
 
+    let response_dispatcher = build_response_dispatcher(&cfg).map(Arc::new);
+    if let Some(dispatcher) = &response_dispatcher {
+        info!(
+            actions = dispatcher.action_count(),
+            dry_run = dispatcher.is_dry_run(),
+            "response dispatcher initialized"
+        );
+    }
+
     let reader_handle = tokio::spawn(async move {
         if let Err(err) = loader::run_ringbuf_reader(ring_buf, raw_sender).await {
             error!(error = %err, "ring buffer reader task terminated");
@@ -157,9 +182,14 @@ async fn main() -> anyhow::Result<()> {
     let scanner_handle = tokio::spawn(scanner.run());
 
     let consumer_output_manager = Arc::clone(&output_manager);
+    let consumer_response_dispatcher = response_dispatcher.clone();
     let consumer_handle = tokio::spawn(async move {
         while let Some(event) = output_receiver.recv().await {
             consumer_output_manager.dispatch(&event);
+
+            if let Some(dispatcher) = &consumer_response_dispatcher {
+                let _ = dispatcher.dispatch(&event);
+            }
         }
     });
 
