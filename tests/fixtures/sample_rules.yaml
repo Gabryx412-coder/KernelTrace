@@ -1,0 +1,22 @@
+# Regola di esempio usata come fixture di riferimento nella documentazione
+# (docs/rules/writing-rules.md, Parte 17) e come base di partenza per
+# scrivere nuove regole custom.
+id: example-suspicious-tmp-execution
+name: Executable launched from /tmp
+description: >
+  Rileva l'esecuzione di un binario posizionato sotto /tmp, una posizione
+  atipica per eseguibili legittimi e comune per payload scaricati da
+  script di staging.
+severity: medium
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: exec.filename
+      operator: regex
+      value: "^/tmp/"
+tags:
+  - execution_from_tmp
+enabled: true
