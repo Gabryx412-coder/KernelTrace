@@ -62,3 +62,23 @@ path = "../../benches/pipeline_bench.rs"
 name = "detection_bench"
 harness = false
 path = "../../benches/detection_bench.rs"
+
+[[test]]
+name = "test_process_monitor"
+path = "../../tests/integration/test_process_monitor.rs"
+
+[[test]]
+name = "test_fim"
+path = "../../tests/integration/test_fim.rs"
+
+[[test]]
+name = "test_network_monitor"
+path = "../../tests/integration/test_network_monitor.rs"
+
+[[test]]
+name = "test_rules_engine"
+path = "../../tests/integration/test_rules_engine.rs"
+
+[[test]]
+name = "test_container_detection"
+path = "../../tests/integration/test_container_detection.rs"
