@@ -1,0 +1,33 @@
+# Rileva il pattern "download poi rendi eseguibile", tipico di script di
+# staging di malware: curl/wget scarica un payload, seguito a breve
+# distanza da un chmod che lo rende eseguibile.
+id: builtin-curl-then-chmod
+name: Download followed by chmod (staging pattern)
+description: >
+  Un comando curl o wget è stato seguito, entro una breve finestra
+  temporale e nello stesso contesto di shell (stesso processo padre), da
+  un chmod — pattern comune negli script di staging di malware che
+  scaricano un payload e lo rendono eseguibile prima di lanciarlo.
+severity: high
+match:
+  kind: sequence
+  first:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: exec.filename
+      operator: regex
+      value: "(curl|wget)$"
+  then:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: exec.filename
+      operator: contains
+      value: chmod
+  within_seconds: 30
+  correlate_by: ppid
+tags:
+  - staging_pattern
+  - mitre_t1105
+enabled: true
