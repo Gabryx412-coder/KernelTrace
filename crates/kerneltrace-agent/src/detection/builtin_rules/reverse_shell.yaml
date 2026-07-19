@@ -1,0 +1,22 @@
+# Rileva l'esecuzione di una shell interattiva o di una redirezione
+# /dev/tcp tipica delle reverse shell bash native.
+id: builtin-reverse-shell-interactive
+name: Interactive shell or /dev/tcp redirection detected
+description: >
+  Rileva l'esecuzione di bash/sh/zsh/dash con flag interattivi, o
+  redirezioni verso /dev/tcp o /dev/udp, tecniche comuni per stabilire una
+  reverse shell senza utility esterne.
+severity: high
+match:
+  kind: simple
+  conditions:
+    - field: event_kind
+      operator: equals
+      value: exec
+    - field: tag
+      operator: present
+      value: suspected_reverse_shell
+tags:
+  - reverse_shell
+  - mitre_t1059
+enabled: true
