@@ -1,0 +1,9 @@
+# Dipendenze runtime del tool di management, mantenute in sincronia con
+# la sezione [project.dependencies] di pyproject.toml per l'uso in
+# ambienti che preferiscono `pip install -r requirements.txt` a
+# un'installazione tramite pyproject (es. alcune pipeline CI legacy o
+# container minimali senza build backend di setuptools disponibile).
+
+click>=8.1,<9.0
+PyYAML>=6.0,<7.0
+rich>=13.0,<14.0
