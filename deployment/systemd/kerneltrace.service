@@ -1,0 +1,50 @@
+[Unit]
+Description=KernelTrace HIDS Agent
+Documentation=https://github.com/Gabryx412-coder/KernelTrace/tree/main/docs
+After=network-online.target
+Wants=network-online.target
+# KernelTrace deve avviarsi il prima possibile nel processo di boot per
+# ridurre la finestra temporale non monitorata, ma dopo che il filesystem
+# e la rete di base sono disponibili (necessari per la lettura di
+# /proc, /sys/fs/cgroup e per gli output sink di rete futuri).
+ConditionPathExists=/etc/kerneltrace/kerneltrace.yaml
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/kerneltrace-cli start --config /etc/kerneltrace/kerneltrace.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+# KernelTrace-cli avvia kerneltrace-agent come processo figlio in
+# foreground (vedi crates/kerneltrace-cli/src/commands/start.rs); systemd
+# traccia entrambi i processi tramite lo stesso cgroup (KillMode=control-group).
+KillMode=control-group
+TimeoutStopSec=30s
+
+# ---------------------------------------------------------------------------
+# Privilegi: KernelTrace richiede CAP_BPF e CAP_SYS_ADMIN per caricare
+# programmi eBPF. Eseguiamo come utente dedicato non-root con le sole
+# capability necessarie (principio del minimo privilegio), invece di
+# eseguire l'intero processo come root.
+# ---------------------------------------------------------------------------
+User=kerneltrace
+Group=kerneltrace
+AmbientCapabilities=CAP_BPF CAP_SYS_ADMIN CAP_SYS_RESOURCE CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_BPF CAP_SYS_ADMIN CAP_SYS_RESOURCE CAP_NET_ADMIN
+NoNewPrivileges=true
+
+# ---------------------------------------------------------------------------
+# Hardening aggiuntivo. Alcune protezioni standard (es. ProtectKernelModules)
+# sono deliberatamente NON applicate perché in conflitto diretto con
+# l'accesso a /sys/kernel/debug e /sys/kernel/btf richiesto da eBPF/CO-RE.
+# ---------------------------------------------------------------------------
+ProtectSystem=strict
+ReadWritePaths=/var/log/kerneltrace /run
+ReadOnlyPaths=/etc/kerneltrace
+ProtectHome=true
+PrivateTmp=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
