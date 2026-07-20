@@ -1,0 +1,8 @@
+# Configurazione del pulsante "Sponsor" di GitHub. Vuoto/commentato
+# finché il progetto non stabilisce un canale di funding ufficiale;
+# lasciato come file segnaposto per coerenza con la struttura attesa da
+# un repository GitHub maturo, pronto da popolare quando necessario.
+
+# github: [kerneltrace]
+# open_collective: kerneltrace
+# custom: ["https://kerneltrace.dev/sponsor"]
