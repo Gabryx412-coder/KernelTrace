@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kerneltrace-config
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kerneltrace
+data:
+  kerneltrace.yaml: |
+    agent:
+      pipeline_capacity: 8192
+      pid_file: /run/kerneltrace.pid
+
+    logging:
+      level: info
+      format: json
+
+    monitoring:
+      process: true
+      file_integrity: true
+      network: true
+      syscalls: true
+      fim_hash_algorithm: blake3
+      fim_watch_paths:
+        - /etc/passwd
+        - /etc/shadow
+        - /etc/kubernetes
+
+    rules:
+      directories:
+        - /etc/kerneltrace/rules
+      strict_parsing: false
+
+    output:
+      sinks:
+        - stdout
+        - json
+      file_path: /var/log/kerneltrace/events.json
+
+    container:
+      docker: true
+      podman: true
+      kubernetes: true
