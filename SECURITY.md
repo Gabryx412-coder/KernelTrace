@@ -2,21 +2,18 @@
 
 ## Segnalare una vulnerabilità
 
-KernelTrace è un sistema di sicurezza (HIDS) e prendiamo estremamente sul
-serio qualsiasi vulnerabilità che ne comprometta l'affidabilità.
+KernelTrace è un sistema di sicurezza (HIDS) e le vulnerabilità che ne comprometterebbero
+l'affidabilità vanno segnalate con la massima cura.
 
 **Non aprire una issue pubblica per vulnerabilità di sicurezza.**
 
 Segnala invece privatamente tramite:
 
-1. **GitHub Security Advisories**: usa la funzione
-   ["Report a vulnerability"](https://github.com/Gabryx412-Coder/KernelTrace/security/advisories/new)
-   nella tab Security del repository (metodo preferito).
-2. In alternativa, invia una email a `security@kerneltrace.dev` con:
-   - Descrizione dettagliata della vulnerabilità
-   - Passi per riprodurla
-   - Versione di KernelTrace e versione del kernel Linux interessate
-   - Impatto potenziale stimato
+1. **GitHub Security Advisories** (metodo preferito): usa la funzione
+   ["Report a vulnerability"](https://github.com/Gabryx412-coder/KernelTrace/security/advisories/new)
+   nella tab Security del repository.
+
+Questo è attualmente l'unico canale di segnalazione ufficiale del progetto.
 
 ## Cosa aspettarsi
 
@@ -25,8 +22,7 @@ Segnala invece privatamente tramite:
   stima di severità (basata su CVSS) e tempistiche.
 - **Coordinamento della disclosure**: lavoriamo con chi segnala per
   concordare tempistiche di disclosure responsabile, tipicamente 90
-  giorni dalla conferma, salvo necessità di coordinamento più ampio (es.
-  vulnerabilità in dipendenze condivise con altri progetti).
+  giorni dalla conferma, salvo necessità di coordinamento più ampio.
 
 ## Versioni supportate
 
