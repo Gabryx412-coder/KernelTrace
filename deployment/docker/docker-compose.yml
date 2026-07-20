@@ -1,0 +1,40 @@
+# docker-compose.yml di riferimento per l'esecuzione di KernelTrace come
+# container privilegiato con accesso al kernel host. Vedi
+# docs/deployment/docker.md per la spiegazione completa dei requisiti di
+# privilegio e dei volumi montati.
+
+services:
+  kerneltrace:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    image: kerneltrace:latest
+    container_name: kerneltrace
+
+    # Richiesti per il caricamento di programmi eBPF e per l'osservazione
+    # di tutti i processi dell'host, non solo del container stesso.
+    privileged: true
+    pid: host
+    network_mode: host
+
+    volumes:
+      # Necessario per l'accesso a BTF e alle tracepoint del kernel host.
+      - /sys/kernel/debug:/sys/kernel/debug:rw
+      # Sola lettura: il container awareness legge solo /proc/<pid>/cgroup,
+      # non necessita di scrivere sui cgroup dell'host.
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ./kerneltrace.yaml:/etc/kerneltrace/kerneltrace.yaml:ro
+      - kerneltrace-logs:/var/log/kerneltrace
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "kerneltrace-cli", "status", "--format", "json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kerneltrace-logs:
+    driver: local
