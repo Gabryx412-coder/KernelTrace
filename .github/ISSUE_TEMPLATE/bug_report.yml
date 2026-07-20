@@ -1,0 +1,86 @@
+name: Bug Report
+description: Segnala un comportamento inatteso o un malfunzionamento di KernelTrace
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Grazie per segnalare un bug! Se si tratta di una **vulnerabilità di
+        sicurezza**, non usare questo template: segui invece la procedura
+        descritta in [SECURITY.md](../../SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Versione di KernelTrace
+      description: Output di `kerneltrace-cli --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: kernel-version
+    attributes:
+      label: Versione del kernel Linux
+      description: Output di `uname -r`
+      placeholder: "6.8.0-generic"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Distribuzione
+      options:
+        - Ubuntu
+        - Debian
+        - Fedora
+        - RHEL/CentOS
+        - Arch Linux
+        - Altra (specificare sotto)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrizione del problema
+      description: Cosa ti aspettavi che succedesse, e cosa è successo invece?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passi per riprodurre
+      description: Elenca i passi esatti per riprodurre il comportamento
+      placeholder: |
+        1. Avvia l'agente con questa configurazione...
+        2. Esegui questo comando...
+        3. Osserva questo output...
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configurazione rilevante
+      description: Includi la sezione rilevante di kerneltrace.yaml (rimuovi dati sensibili)
+      render: yaml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log rilevanti
+      description: Output di `journalctl -u kerneltrace` o dei log dell'agente
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: Ho verificato che il problema non è già stato segnalato in una issue esistente
+          required: true
+        - label: Ho consultato TROUBLESHOOTING.md senza trovare una soluzione
+          required: true
