@@ -1,0 +1,30 @@
+name: Question
+description: Fai una domanda sull'uso o la configurazione di KernelTrace
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prima di aprire una domanda, controlla se la risposta è già in
+        [FAQ.md](../../FAQ.md) o in [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md).
+
+  - type: textarea
+    id: question
+    attributes:
+      label: La tua domanda
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contesto aggiuntivo
+      description: Versione di KernelTrace, distribuzione, configurazione rilevante, ecc.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: Ho consultato FAQ.md e TROUBLESHOOTING.md
+          required: true
