@@ -1,0 +1,22 @@
+name: 🔒 Security Vulnerability
+description: NON usare questo template per vulnerabilità di sicurezza reali
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Fermati
+
+        **Non segnalare vulnerabilità di sicurezza tramite una issue pubblica.**
+
+        Segui invece la procedura di disclosure responsabile descritta in
+        [SECURITY.md](../../SECURITY.md):
+
+        1. Usa [GitHub Security Advisories](https://github.com/kerneltrace/kerneltrace/security/advisories/new)
+           (metodo preferito), oppure
+        2. Invia un'email a `security@kerneltrace.dev`
+
+        Questa issue verrà chiusa senza ulteriori azioni. Se hai aperto
+        questo template per errore e volevi segnalare un bug funzionale
+        non di sicurezza, usa il template
+        [Bug Report](bug_report.yml) invece.
