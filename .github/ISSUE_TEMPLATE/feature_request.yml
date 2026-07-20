@@ -1,0 +1,56 @@
+name: Feature Request
+description: Proponi una nuova funzionalità o un miglioramento
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prima di proporre una funzionalità, controlla la
+        [Roadmap](../../ROADMAP.md) per verificare se è già pianificata.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quale problema risolve questa funzionalità?
+      description: Descrivi il problema o la limitazione attuale che ti ha portato a questa proposta
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Soluzione proposta
+      description: Descrivi come immagini che funzioni la funzionalità
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative considerate
+      description: Hai considerato altri approcci? Perché li hai scartati?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area del progetto interessata
+      options:
+        - eBPF / probe kernel
+        - Agente userspace (pipeline, enrichment)
+        - Rules engine / regole di detection
+        - Output sink / integrazioni SIEM
+        - CLI Rust
+        - Tool di management Python
+        - Documentazione
+        - CI/CD
+        - Altro
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: Ho verificato che questa funzionalità non è già presente nella Roadmap
+          required: true
