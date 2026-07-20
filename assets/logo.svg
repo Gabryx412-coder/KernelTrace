@@ -1,0 +1,10 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo segnaposto: esagono (richiamo alla struttura del kernel/eBPF)
+       con un occhio stilizzato al centro (monitoraggio). Da sostituire
+       con un logo definitivo curato da un designer prima della release
+       pubblica del progetto. -->
+  <polygon points="100,10 180,55 180,145 100,190 20,145 20,55"
+           fill="none" stroke="#2b2d42" stroke-width="4"/>
+  <circle cx="100" cy="100" r="35" fill="none" stroke="#2b2d42" stroke-width="4"/>
+  <circle cx="100" cy="100" r="12" fill="#2b2d42"/>
+</svg>
