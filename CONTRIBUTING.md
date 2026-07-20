@@ -15,8 +15,8 @@ nuove funzionalità.
 ## Setup dell'ambiente di sviluppo
 
 ```bash
-git clone https://github.com/kerneltrace/kerneltrace.git
-cd kerneltrace
+git clone https://github.com/Gabryx412-coder/KernelTrace.git
+cd KernelTrace
 ./scripts/setup-dev-env.sh
 ```
 
@@ -70,10 +70,11 @@ guida completa.
 
 ## Processo di review
 
-- Ogni PR richiede l'approvazione di almeno un maintainer (vedi
-  [CODEOWNERS](.github/CODEOWNERS)).
+- Il progetto è attualmente mantenuto da un singolo maintainer (vedi
+  [GOVERNANCE.md](GOVERNANCE.md)): ogni pull request è revisionata e
+  approvata direttamente dal maintainer.
 - La CI (build, test, lint, security audit) deve passare prima del merge.
-- I maintainer possono richiedere modifiche o chiarimenti; rispondi ai
+- Il maintainer può richiedere modifiche o chiarimenti; rispondi ai
   commenti di review direttamente sulla PR.
 
 ## Segnalare bug
