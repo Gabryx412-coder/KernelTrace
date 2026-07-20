@@ -1,0 +1,58 @@
+# Esempio commentato riga per riga di una regola di detection custom.
+# Copia questo file in una directory elencata in `rules.directories`
+# della tua configurazione per attivarla.
+
+# Identificativo univoco della regola. Convenzione: usa un prefisso
+# descrittivo (qui "example-") per distinguerla dalle regole `builtin-*`
+# e da quelle di altri autori nella stessa directory community.
+id: example-suspicious-cron-modification
+
+# Nome leggibile, mostrato nei log e da `kerneltrace-cli rules list`.
+name: Crontab file modified by non-root process
+
+# Descrizione del razionale: sempre consigliata per regole community,
+# così chi la eredita capisce cosa rileva senza dover leggere la logica.
+description: >
+  Rileva la modifica di file crontab di sistema (/etc/crontab,
+  /etc/cron.d/*) da parte di un processo non eseguito come root — un
+  pattern anomalo perché la gestione legittima del cron di sistema
+  avviene tipicamente tramite strumenti privilegiati (es. `crontab -e`
+  che usa un helper setuid), non da processi generici non privilegiati.
+
+# Severità: influenza il livello di log emesso (critical/high -> error,
+# medium -> warn, low -> info). Qui "high" perché una modifica non
+# autorizzata del cron è un vettore comune di persistenza per un attacker.
+severity: high
+
+match:
+  # "simple": tutte le condizioni sotto devono essere soddisfatte dallo
+  # stesso evento (AND logico).
+  kind: simple
+  conditions:
+    # Solo eventi di modifica file (non apertura in sola lettura).
+    - field: event_kind
+      operator: equals
+      value: file_change
+
+    # Il path modificato deve corrispondere a uno dei file crontab di
+    # sistema. L'operatore "regex" permette di coprire sia /etc/crontab
+    # sia i file sotto /etc/cron.d/ con un solo pattern.
+    - field: file.path
+      operator: regex
+      value: "^/etc/(crontab|cron\\.d/)"
+
+    # process.uid è l'UID effettivo del processo che ha effettuato la
+    # modifica: escludiamo root (uid 0), che si suppone possa modificare
+    # legittimamente questi file tramite strumenti di sistema.
+    - field: process.uid
+      operator: in
+      value: "1,2,3,4,5,1000,1001"  # esempio: escludi solo root esplicitamente in produzione con un controllo != invece di una lista
+
+# Tag applicati all'evento oltre al tag automatico "rule:<id>". Utile per
+# raggruppare regole correlate sotto una categoria comune (qui,
+# convenzione MITRE ATT&CK per persistenza tramite cron job schedulato).
+tags:
+  - persistence_cron
+  - mitre_t1053_003
+
+enabled: true
