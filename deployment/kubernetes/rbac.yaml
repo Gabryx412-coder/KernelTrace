@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kerneltrace
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kerneltrace
+
+---
+# In questa fase del progetto KernelTrace non effettua alcuna chiamata
+# all'API server Kubernetes (il riconoscimento dei pod si basa
+# esclusivamente sul parsing del cgroup path, vedi
+# container::kubernetes). Questo ClusterRole è predisposto vuoto/minimale
+# per la futura risoluzione di nome/namespace del pod tramite API,
+# pianificata in ROADMAP.md, per non dover ridisegnare l'RBAC quando
+# quella funzionalità verrà introdotta.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kerneltrace
+  labels:
+    app.kubernetes.io/name: kerneltrace
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kerneltrace
+  labels:
+    app.kubernetes.io/name: kerneltrace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kerneltrace
+subjects:
+  - kind: ServiceAccount
+    name: kerneltrace
+    namespace: kube-system
