@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Segnalazione di sicurezza
+    url: https://github.com/kerneltrace/kerneltrace/security/advisories/new
+    about: Per vulnerabilità di sicurezza, usa SEMPRE questo canale privato, mai una issue pubblica.
+  - name: 💬 Discussioni della community
+    url: https://github.com/kerneltrace/kerneltrace/discussions
+    about: Per domande aperte, idee non ancora formalizzate, o discussioni generali.
