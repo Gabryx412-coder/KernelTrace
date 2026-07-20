@@ -1,0 +1,18 @@
+# Su un account personale (non organizzazione) non esistono GitHub Teams:
+# tutte le aree del repository sono di proprietà dello stesso owner.
+# Questo file resta comunque utile come documentazione delle aree del
+# progetto e come base pronta se in futuro il progetto passasse a
+# un'organizzazione con collaboratori multipli e team dedicati.
+
+*                                                        @Gabryx412-coder
+
+/crates/kerneltrace-ebpf/                                @Gabryx412-coder
+/crates/kerneltrace-agent/                               @Gabryx412-coder
+/crates/kerneltrace-agent/src/detection/builtin_rules/   @Gabryx412-coder
+/rules/                                                  @Gabryx412-coder
+/.github/workflows/                                      @Gabryx412-coder
+/docs/                                                    @Gabryx412-coder
+
+/LICENSE                                                  @Gabryx412-coder
+/SECURITY.md                                              @Gabryx412-coder
+/CODE_OF_CONDUCT.md                                       @Gabryx412-coder
