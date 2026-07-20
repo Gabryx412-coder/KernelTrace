@@ -1,0 +1,25 @@
+[package]
+name = "custom-sink-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "custom_sink"
+path = "main.rs"
+
+[dependencies]
+kerneltrace-agent = { path = "../../crates/kerneltrace-agent" }
+tokio = { version = "1.38", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+serde_json = "1.0"
+
+# Client HTTP minimale, usato solo da questo esempio per dimostrare un
+# sink che inoltra eventi verso un endpoint esterno (es. un webhook).
+# Deliberatamente non aggiunto alle dipendenze di kerneltrace-agent per
+# non appesantire il binario principale con un client HTTP non
+# necessario finché un sink di rete non verrà implementato nel core
+# (vedi ROADMAP.md).
+ureq = { version = "2.9", features = ["json"] }
