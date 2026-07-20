@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kerneltrace
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kerneltrace
+    app.kubernetes.io/component: hids-agent
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kerneltrace
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kerneltrace
+        app.kubernetes.io/component: hids-agent
+    spec:
+      serviceAccountName: kerneltrace
+      # Necessario per osservare tutti i processi del nodo, non solo
+      # quelli del proprio pod (analogo a --pid=host in Docker).
+      hostPID: true
+      # Tolleranze ampie: KernelTrace deve girare su ogni nodo del
+      # cluster, inclusi i control plane e i nodi con taint dedicati,
+      # per garantire visibilità completa.
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      containers:
+        - name: kerneltrace
+          image: kerneltrace:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["CAP_BPF", "CAP_SYS_ADMIN", "CAP_SYS_RESOURCE", "CAP_NET_ADMIN"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: kernel-debug
+              mountPath: /sys/kernel/debug
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+              readOnly: true
+            - name: config
+              mountPath: /etc/kerneltrace
+              readOnly: true
+            - name: logs
+              mountPath: /var/log/kerneltrace
+          livenessProbe:
+            exec:
+              command: ["kerneltrace-cli", "status"]
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          env:
+            - name: KERNELTRACE_CONFIG
+              value: /etc/kerneltrace/kerneltrace.yaml
+      volumes:
+        - name: kernel-debug
+          hostPath:
+            path: /sys/kernel/debug
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: config
+          configMap:
+            name: kerneltrace-config
+        - name: logs
+          hostPath:
+            path: /var/log/kerneltrace
+            type: DirectoryOrCreate
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
