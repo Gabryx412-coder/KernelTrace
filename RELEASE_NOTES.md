@@ -2,7 +2,7 @@
 
 Le note di rilascio dettagliate per ogni versione sono pubblicate
 automaticamente nella sezione
-[Releases](https://github.com/kerneltrace/kerneltrace/releases) di
+[Releases](https://github.com/gabryxdev/kerneltrace/releases) di
 GitHub al momento della pubblicazione di un tag `v*.*.*` (vedi
 `.github/workflows/release.yml`).
 
