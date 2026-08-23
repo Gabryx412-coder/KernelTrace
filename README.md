@@ -4,9 +4,9 @@
 
 **A modern, high-performance Host Intrusion Detection System (HIDS) built on eBPF.**
 
-[![CI](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/ci.yml)
-[![Clippy](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/clippy.yml/badge.svg)](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/clippy.yml)
-[![Security Audit](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/security-audit.yml/badge.svg)](https://github.com/Gabryx412-coder/KernelTrace/actions/workflows/security-audit.yml)
+[![CI](https://github.com/gabryxdev/KernelTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/gabryxdev/KernelTrace/actions/workflows/ci.yml)
+[![Clippy](https://github.com/gabryxdev/KernelTrace/actions/workflows/clippy.yml/badge.svg)](https://github.com/gabryxdev/KernelTrace/actions/workflows/clippy.yml)
+[![Security Audit](https://github.com/gabryxdev/KernelTrace/actions/workflows/security-audit.yml/badge.svg)](https://github.com/gabryxdev/KernelTrace/actions/workflows/security-audit.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.79%2B-orange.svg)](rust-toolchain.toml)
 
