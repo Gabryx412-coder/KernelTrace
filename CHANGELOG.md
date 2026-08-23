@@ -42,4 +42,4 @@ fase `0.x`).
 - Nome e namespace dei pod Kubernetes non risolti (solo UID del pod).
 - Baseline FIM non persistente tra riavvii dell'agente.
 
-[Unreleased]: https://github.com/Gabryx412-coder/KernelTrace/compare/main...HEAD
+[Unreleased]: https://github.com/gabryxdev/KernelTrace/compare/main...HEAD
