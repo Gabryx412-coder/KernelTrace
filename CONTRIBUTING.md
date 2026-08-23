@@ -15,7 +15,7 @@ nuove funzionalità.
 ## Setup dell'ambiente di sviluppo
 
 ```bash
-git clone https://github.com/Gabryx412-coder/KernelTrace.git
+git clone https://github.com/gabryxdev/KernelTrace.git
 cd KernelTrace
 ./scripts/setup-dev-env.sh
 ```
